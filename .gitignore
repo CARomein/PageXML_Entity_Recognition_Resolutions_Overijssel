@@ -1,0 +1,8 @@
+venv_per/
+venv_loc/
+venv_org/
+venv_dat/
+models/
+pagexml/
+*.pyc
+__pycache__/
