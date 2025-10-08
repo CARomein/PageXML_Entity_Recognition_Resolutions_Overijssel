@@ -14,7 +14,6 @@ This repository contains scripts for tagging named entities in PageXML documents
 - **DAT** (datum) - Dates
 - **HOE** (capaciteit_hoedanigheid) - Government authorities/capacities
 - **COM** (commissie_committee) - Committees/commissions
-- **RES** (document) - Resolutions
 
 ## Prerequisites
 
@@ -93,10 +92,10 @@ Entity_Recognition_Resolutions\
 ├── run_org_tagger.bat
 ├── run_dat_tagger.bat
 ├── models\
-│   ├── best-model-per.pt
-│   ├── best-model-loc.pt
-│   ├── best-model-org.pt
-│   └── best-model-dat.pt
+│   ├── best-model_per.pt
+│   ├── best-model_loc.pt
+│   ├── best-model_org.pt
+│   └── best-model_dat.pt
 ├── pagexml\
 └── README.md
 ```
@@ -108,25 +107,25 @@ Each entity type has a dedicated launcher script to ensure compatibility. To tag
 #### Tagging Persons
 
 ```batch
-run_per_tagger.bat ./pagexml ./models/best-model-per.pt
+run_per_tagger.bat ./pagexml ./models/best-model_per.pt
 ```
 
 #### Tagging Locations
 
 ```batch
-run_loc_tagger.bat ./pagexml ./models/best-model-loc.pt
+run_loc_tagger.bat ./pagexml ./models/best-model_loc.pt
 ```
 
 #### Tagging Organisations
 
 ```batch
-run_org_tagger.bat ./pagexml ./models/best-model-org.pt
+run_org_tagger.bat ./pagexml ./models/best-model_org.pt
 ```
 
 #### Tagging Dates
 
 ```batch
-run_dat_tagger.bat ./pagexml ./models/best-model-dat.pt
+run_dat_tagger.bat ./pagexml ./models/best-model_dat.pt
 ```
 
 Each script will display progress as it processes files and report the total number of entities tagged upon completion.
