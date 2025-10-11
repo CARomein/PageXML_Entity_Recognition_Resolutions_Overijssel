@@ -4,5 +4,6 @@ venv_org/
 venv_dat/
 models/
 pagexml/
+taggers_nietgebruiken/
 *.pyc
 __pycache__/
