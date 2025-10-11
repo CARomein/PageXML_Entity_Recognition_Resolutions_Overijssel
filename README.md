@@ -470,7 +470,7 @@ If you use these scripts or models for academic work, please cite:
 
 **This repository:**
 ```
-Named Entity Recognition for Historical Dutch Provincial Resolutions (2025)
+Entity Recoginition Resolutions Overijssel (2025)
 Developed as part of the HAICu Project
 https://github.com/CARomein/Entity_Recognition_Resolutions
 ```
