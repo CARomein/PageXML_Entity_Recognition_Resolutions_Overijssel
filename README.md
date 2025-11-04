@@ -7,14 +7,15 @@ Automated entity tagging pipeline for early modern Dutch PageXML documents using
 - **Pre-trained models**: Uses Republic NER models specifically trained on historical Dutch administrative texts
 - **Multiple entity types**: Supports persons (PER) and dates (DAT) with extensible architecture
 - **Transkribus integration**: Direct import/export workflow with Transkribus PageXML format
-- **Batch processing**: Process entire collections efficiently
+- **Collection-based processing**: Automatically discovers and processes entire Transkribus export collections
+- **Interactive selection**: Choose specific collections to process through an interactive interface
+- **Batch processing**: Process multiple collections efficiently
 - **Isolated environments**: Handles dependency conflicts through separate virtual environments
-- **Confidence tracking**: Reports entity recognition confidence levels
-- **Preserves structure**: Maintains existing annotations and reading order
+- **Preserves structure**: Maintains existing annotations, reading order, and XML structure
 
 ## Overview
 
-This repository contains scripts for tagging named entities in PageXML documents exported from Transkribus. The tagged documents can be re-imported into Transkribus with entity annotations preserved in custom attributes, enabling further annotation, searching, and analysis of historical entities.
+This repository contains scripts for tagging named entities in PageXML documents exported from Transkribus. The script is designed to work with Transkribus export structures (numbered folders containing `page/` subdirectories with XML files). Tagged documents can be re-imported into Transkribus with entity annotations preserved in custom attributes, enabling further annotation, searching, and analysis of historical entities.
 
 ### Supported Entity Types
 
@@ -63,11 +64,11 @@ Install the required libraries in each environment. Execute these commands one a
 
 ```batch
 venv_per\Scripts\activate
-pip install flair
+pip install -r requirements.txt
 deactivate
 
 venv_dat\Scripts\activate
-pip install flair
+pip install -r requirements.txt
 deactivate
 ```
 
@@ -95,15 +96,15 @@ After completing these steps, your directory structure should resemble:
 
 ```
 Entity_Recognition_Resolutions\
-├── tag_entities_direct.py       # Main tagging script
-├── run_per_tagger.bat            # Launcher for PER tagging
-├── run_dat_tagger.bat            # Launcher for DAT tagging
+├── tag_entities.py               # Main tagging script
+├── run_per.bat                   # Launcher for PER tagging
+├── run_dat.bat                   # Launcher for DAT tagging
+├── requirements.txt              # Python dependencies
 ├── venv_per\                     # Virtual environment for PER
 ├── venv_dat\                     # Virtual environment for DAT
 ├── models\                       # Downloaded model files
 │   ├── best-model_per.pt
 │   └── best-model_dat.pt
-├── pagexml\                      # Your PageXML documents
 ├── README.md                     # This file
 ├── LICENSE                       # MIT License
 └── .gitignore                    # Git ignore patterns
@@ -111,69 +112,153 @@ Entity_Recognition_Resolutions\
 
 ## Usage
 
+### Expected Directory Structure
+
+The script expects PageXML documents in a Transkribus export structure:
+
+```
+base_directory\
+├── 12345\                        # Collection number
+│   └── page\
+│       ├── 001.xml
+│       ├── 002.xml
+│       └── ...
+├── 12346\                        # Another collection
+│   └── page\
+│       ├── 001.xml
+│       └── ...
+└── ...
+```
+
+The script will automatically discover all numbered folders containing `page/` subdirectories with XML files.
+
 ### Basic Workflow
 
-Each entity type has a dedicated launcher script to ensure compatibility. The general workflow is:
-
-1. Export PageXML from Transkribus
-2. Run entity tagging script(s)
-3. Review tagged output
-4. Import back into Transkribus
+1. Export collections from Transkribus to a base directory
+2. Run the appropriate entity tagging script
+3. Select collections to process through the interactive interface
+4. Review tagged output
+5. Import collections back into Transkribus
 
 ### Tagging Persons (PER)
 
+Double-click `run_per.bat` or run it from the command line. The script will prompt for the base directory:
+
 ```batch
-run_per_tagger.bat ./pagexml ./models/best-model_per.pt
+run_per.bat
 ```
 
-This processes all PageXML files in the `./pagexml` directory and adds person entity tags.
+Example interaction:
+```
+========================================
+  Person Tagger (PER)
+========================================
+
+Enter directory to process: C:\transkribus_exports\resolutions
+
+Activating environment...
+
+======================================================================
+Entity Recognition Tagger
+======================================================================
+Base directory: C:\transkribus_exports\resolutions
+Entity type: PER
+Model: ./models/best-model_per.pt
+======================================================================
+
+======================================================================
+Available Collections:
+======================================================================
+  1. 12345           ( 142 XML files)
+  2. 12346           (  89 XML files)
+  3. 12347           ( 201 XML files)
+======================================================================
+
+Options:
+  - Type 'all' to process all collections
+  - Type 'include' to select specific collections
+  - Type 'exclude' to exclude specific collections
+
+Your choice: include
+
+Enter numbers to INCLUDE (space-separated, e.g. 1 3 5):
+Numbers: 1 3
+
+You selected 2 collection(s):
+  - 12345 (142 files)
+  - 12347 (201 files)
+
+Confirm? (yes/no): yes
+
+======================================================================
+Loading PER model...
+======================================================================
+Model loaded: PER
+Tag name: persoon
+
+======================================================================
+Processing: 12345 (142 files)
+======================================================================
+  ✓ 001.xml                                              12 tags
+  ✓ 002.xml                                               8 tags
+  ...
+
+Collection 12345: 142 files processed
+
+======================================================================
+Processing: 12347 (201 files)
+======================================================================
+  ✓ 001.xml                                              15 tags
+  ...
+
+======================================================================
+SUMMARY
+======================================================================
+Total files processed: 343
+Total PER tags added: 2847
+======================================================================
+
+Done!
+```
 
 ### Tagging Dates (DAT)
 
+Double-click `run_dat.bat` or run it from the command line:
+
 ```batch
-run_dat_tagger.bat ./pagexml ./models/best-model_dat.pt
+run_dat.bat
 ```
 
-This processes all PageXML files in the `./pagexml` directory and adds date entity tags.
+The interaction pattern is identical to the PER tagger, but processes date entities instead.
 
 ### Processing Multiple Entity Types
 
-To tag multiple entity types, run each script sequentially:
+To tag multiple entity types, run each script sequentially. Each script preserves existing tags, so running multiple scripts adds cumulative annotations:
 
 ```batch
-run_per_tagger.bat ./pagexml ./models/best-model_per.pt
-run_dat_tagger.bat ./pagexml ./models/best-model_dat.pt
+run_per.bat
+run_dat.bat
 ```
 
-Each script preserves existing tags, so running multiple scripts adds cumulative annotations.
+### Interactive Selection Options
 
-### Command-Line Arguments
+The script provides three selection modes:
 
-```
-run_[entity]_tagger.bat [pagexml_directory] [model_path]
-```
+1. **All collections**: Processes every collection found in the base directory
+2. **Include specific collections**: Select collections by number (space-separated)
+3. **Exclude specific collections**: Process all except specified collections
 
-**Arguments:**
-- `pagexml_directory`: Path to folder containing PageXML files (processes recursively)
-- `model_path`: Path to the `.pt` model file for the entity type
+This flexibility allows for efficient batch processing of large archives or selective processing of specific collections.
 
 ### Progress Monitoring
 
-Each script displays progress information:
-- File currently being processed
-- Number of entities found per file
-- Total entities tagged
-- Processing time per file
+The script displays detailed progress information:
+- Collection being processed
+- Files processed with tag counts
+- Summary statistics per collection
+- Total files and tags across all collections
 
-Example output:
-```
-Processing: pagexml/0018/page/0001.xml
-Found 12 PER entities
-Processing: pagexml/0018/page/0002.xml
-Found 8 PER entities
-...
-Total: 156 PER entities tagged across 42 files
-```
+Files without any detected entities are not displayed, keeping the output focused on actual results.
 
 ## Input and Output Format
 
@@ -195,7 +280,7 @@ PageXML files exported from Transkribus containing transcribed text. The script 
 PageXML files with entity annotations embedded in TextLine custom attributes:
 
 ```xml
-<TextLine id="line_1" custom="persoon {offset:37;length:8;continued:false;}">
+<TextLine id="line_1" custom="datum {offset:10;length:17;} persoon {offset:37;length:8;}">
   <Coords points="100,200 500,200 500,250 100,250"/>
   <TextEquiv>
     <Unicode>Op heden den 15 january 1650 compareerde Jan Smit</Unicode>
@@ -206,9 +291,10 @@ PageXML files with entity annotations embedded in TextLine custom attributes:
 The format follows Transkribus conventions for custom attributes:
 - `offset`: Character position where entity begins (0-indexed)
 - `length`: Number of characters in the entity
-- `continued`: Whether the entity continues on the next line
 
-Tagged files can be directly re-imported into Transkribus for further annotation, analysis, or export.
+Multiple entities on the same line are separated by spaces in the custom attribute.
+
+Tagged files are modified in place and can be directly re-imported into Transkribus for further annotation, analysis, or export.
 
 ## Transkribus Integration
 
@@ -222,84 +308,77 @@ Tagged files can be directly re-imported into Transkribus for further annotation
    - `persoon` (for PER entities)
    - `datum` (for DAT entities)
 4. Assign colours for visualisation
+5. Save configuration
 
-### Workflow with Transkribus
+Without this configuration, tagged entities will not be visible in the Transkribus interface.
+
+### Workflow: Export → Tag → Import
 
 1. **Export from Transkribus:**
-   - Select your collection or documents
-   - Export as PageXML
-   - Save to `pagexml/` directory
+   - Select collections to export
+   - Choose PageXML format
+   - Export maintains numbered folder structure
 
-2. **Run NER tagging:**
-   ```batch
-   run_per_tagger.bat ./pagexml ./models/best-model_per.pt
-   run_dat_tagger.bat ./pagexml ./models/best-model_dat.pt
-   ```
+2. **Tag with this tool:**
+   - Run appropriate launcher scripts
+   - Select collections to process
+   - Verify output in console
 
-3. **Review output:**
-   - Check console output for statistics
-   - Examine sample files to verify tagging quality
+3. **Import back to Transkribus:**
+   - Import entire collection folders
+   - Verify entity tags appear correctly
+   - Continue annotation or analysis
 
-4. **Configure Transkribus:**
-   - Ensure `persoon` and `datum` tags exist in collection settings
-   - Assign appropriate colours
+### Cumulative Tagging
 
-5. **Import to Transkribus:**
-   - Import the tagged PageXML files
-   - Verify entities display correctly in the interface
-   - Tags should appear highlighted according to your colour scheme
+The scripts preserve existing custom attributes, allowing cumulative tagging:
+- Tag persons first with `run_per.bat`
+- Then tag dates with `run_dat.bat`
+- Both entity types appear in the final PageXML
 
-6. **Quality control:**
-   - Manually review a sample of tagged entities
-   - Correct false positives/negatives as needed
-   - Use Transkribus search to find all instances of specific entity types
-
-## How It Works
-
-### NER Pipeline
-
-1. **Text extraction**: Reads Unicode text from PageXML TextLine elements
-2. **Entity recognition**: Applies Flair NER model to identify entities
-3. **Offset calculation**: Determines character positions for each entity
-4. **Attribute insertion**: Adds entity information to custom attributes
-5. **XML preservation**: Maintains all existing structure and metadata
-
-### Model Architecture
-
-The Republic NER models use:
-- **Flair framework**: Contextual string embeddings
-- **Training data**: 17th-18th century Dutch States General resolutions
-- **Architecture**: BiLSTM-CRF sequence labelling
-- **Embeddings**: Historical Dutch language models
-
-### Entity Boundary Detection
-
-The models identify entity boundaries using:
-- Contextual information from surrounding text
-- Historical naming conventions
-- Document structure patterns
-- Linguistic features specific to early modern Dutch
+This approach enables flexible workflows and iterative refinement.
 
 ## Troubleshooting
 
+### Directory not found
+
+**Problem:** "ERROR: Directory not found"
+
+**Solutions:**
+- Verify the directory path is correct
+- Use absolute paths if relative paths do not work
+- Ensure the directory contains numbered folders with `page/` subdirectories
+- Check for trailing backslashes (automatically handled by the scripts)
+
+### No collections found
+
+**Problem:** "No collections found! Expected structure: base_dir/number/page/*.xml"
+
+**Solutions:**
+- Verify the directory structure matches Transkribus export format
+- Ensure numbered folders contain `page/` subdirectories
+- Check that `page/` folders contain `.xml` files
+- Verify folder names are numbers (not text labels)
+
 ### Model not found error
 
-**Problem:** "FileNotFoundError: [Errno 2] No such file or directory: './models/best-model_per.pt'"
+**Problem:** "Error: Model file not found: ./models/best-model_per.pt"
 
 **Solutions:**
 - Verify the `.pt` file exists in the `models/` directory
 - Check the filename exactly matches (case-sensitive)
 - Ensure the file downloaded completely (should be several hundred MB)
-- Provide the full path if relative path does not work
+- Create the `models/` directory if it does not exist
 
 ### Import error: No module named 'flair'
 
 **Problem:** Flair not installed in the virtual environment
 
 **Solutions:**
-- Ensure you activated the correct virtual environment
-- Reinstall Flair: `pip install flair`
-- Verify you are using Python 3.8-3.11 (not 3.12+)
+- Ensure you ran `pip install -r requirements.txt` in the correct environment
+- Verify you created both virtual environments
+- Reinstall: `pip install flair`
+- Check Python version compatibility (3.8-3.11)
 
 ### Python version incompatibility
 
@@ -320,17 +399,19 @@ The models identify entity boundaries using:
 - Subsequent runs should be faster (10-30 seconds per file)
 - Large files with many TextLines naturally take longer
 - Close other applications to free up RAM
+- Process collections in batches if necessary
 
 ### No entities found
 
-**Problem:** Script completes but reports 0 entities tagged
+**Problem:** Script completes but reports 0 files processed
 
 **Solutions:**
 - Verify the model file is correct for the entity type
 - Check that TextLine elements contain text (Unicode elements)
 - Ensure text is in Dutch (models trained on Dutch)
-- Try a different document to verify the model works
+- Try a different collection to verify the model works
 - Check that the text is historical Dutch (modern Dutch may have lower recall)
+- Verify XML files are well-formed
 
 ### Encoding errors
 
@@ -362,12 +443,15 @@ The models identify entity boundaries using:
   - Text density (characters per line)
   - First run (downloads embeddings)
   - System specifications
+  - Number of entities per file
 
 ### Typical Processing Times
 
-- Single document (10 pages): ~2-5 minutes
 - Small collection (100 pages): ~15-30 minutes
+- Medium collection (500 pages): ~1-2 hours
 - Large collection (1000 pages): ~2-5 hours
+
+These estimates assume subsequent runs (embeddings already downloaded).
 
 ### System Requirements
 
@@ -378,10 +462,11 @@ The models identify entity boundaries using:
 
 ### Optimisation Tips
 
-- Process documents in batches of 100-200 files
+- Process collections in batches rather than all at once
 - Close unnecessary applications to free RAM
 - Use SSD storage for faster file I/O
 - After initial embedding download, processing is much faster
+- Select specific collections to process rather than entire archives
 
 ## Limitations
 
@@ -393,17 +478,19 @@ The models identify entity boundaries using:
 - **Windows-specific**: Launcher scripts use Windows batch format (Unix adaptation required)
 - **Python version**: Limited to Python 3.8-3.11 due to dependency requirements
 - **No GPU support**: Models run on CPU only (sufficient for typical use cases)
+- **In-place modification**: Original PageXML files are modified directly (backup recommended)
 
 ## Best Practices
 
-1. **Test on sample first**: Process a small subset before running on entire collection
-2. **Verify quality**: Manually review a representative sample of tagged entities
-3. **Backup originals**: Keep untagged PageXML copies before processing
+1. **Backup originals**: Keep untagged PageXML copies before processing (files are modified in place)
+2. **Test on sample first**: Process a small collection before running on entire archive
+3. **Verify quality**: Manually review a representative sample of tagged entities
 4. **Sequential processing**: Run entity types one at a time, not simultaneously
 5. **Monitor output**: Check console output for errors or unexpected results
 6. **Configure Transkribus first**: Set up entity tags in collection before importing
 7. **Document decisions**: Keep notes on false positives/negatives for future reference
 8. **Update models**: Check for updated Republic models periodically
+9. **Batch processing**: Use the interactive selection to process related collections together
 
 ## Technical Details
 
@@ -416,13 +503,25 @@ Specific conflicts:
 - Incompatible embedding types
 - Conflicting PyTorch dependencies
 
+### Collection Discovery
+
+The script automatically discovers collections by:
+1. Scanning the base directory for subdirectories
+2. Checking each subdirectory for a `page/` folder
+3. Verifying the `page/` folder contains XML files
+4. Presenting all valid collections for selection
+
+This approach handles various Transkribus export configurations and allows for flexible archive organisation.
+
 ### File Processing
 
 The script:
-- Recursively searches for `.xml` files in the specified directory
-- Preserves folder structure in output
-- Maintains XML formatting and namespace declarations
-- Handles Transkribus export structure (`[archief]/page/*.xml`)
+- Processes XML files sequentially within each collection
+- Preserves all existing XML structure and attributes
+- Adds custom attributes to TextLine elements
+- Maintains namespace declarations
+- Handles multiple entities per line
+- Skips files with no detected entities (for cleaner output)
 
 ### Custom Attribute Format
 
@@ -433,8 +532,10 @@ key {param1:value1;param2:value2;}
 
 No spaces around colons or semicolons. Multiple attributes separated by spaces:
 ```
-readingOrder {index:0;} persoon {offset:10;length:8;}
+readingOrder {index:0;} persoon {offset:10;length:8;} datum {offset:0;length:9;}
 ```
+
+The script preserves existing custom attributes and appends new entity tags.
 
 ## Related Tools
 
@@ -451,9 +552,12 @@ Potential improvements:
 - Additional entity types (ORG, LOC)
 - Unix/Linux launcher scripts
 - Confidence threshold configuration
+- Parallel processing for faster throughput
 - GUI interface
 - Integration with Transkribus API
 - Support for Python 3.12+
+- Dry-run mode (preview without modification)
+- Detailed entity reports (CSV export)
 
 ## Contributing
 
@@ -463,6 +567,7 @@ Contributions are welcome. Areas for improvement:
 - Performance optimisation
 - Documentation improvements
 - Test suite development
+- Error handling enhancements
 
 ## Citation
 
@@ -470,7 +575,7 @@ If you use these scripts or models for academic work, please cite:
 
 **This repository:**
 ```
-Entity Recoginition Resolutions Overijssel (2025)
+Entity Recognition Resolutions Overijssel (2025)
 Developed as part of the HAICu Project
 https://github.com/CARomein/Entity_Recognition_Resolutions
 ```
@@ -499,6 +604,14 @@ Development was assisted by Claude (Anthropic) for code implementation and docum
 - The Flair NLP framework team for the underlying technology
 
 ## Version History
+
+- **v2.0.0** (2025-01): Major architectural revision
+  - Collection-based processing with automatic discovery
+  - Interactive collection selection (all/include/exclude)
+  - Simplified command-line interface (no model path required)
+  - In-place modification of PageXML files
+  - Improved progress reporting
+  - Cleaner output (skips files without entities)
 
 - **v1.0.0** (2025-01): Initial release
   - PER and DAT entity recognition
